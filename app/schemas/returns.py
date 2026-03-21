@@ -21,6 +21,9 @@ class ReturnResponse(BaseModel):
     decision: str
     decision_reason: str
     routing_outcome: str
+    classification_category: Optional[str]
+    classification_confidence: Optional[float]
+    risk_score: Optional[float]
     created_at: datetime
 
     model_config = {"from_attributes": True}
