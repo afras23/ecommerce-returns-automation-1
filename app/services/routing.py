@@ -1,24 +1,49 @@
 """
-Routing: maps a decision to the downstream team or system that should act on it.
+Routing: maps a decision + classification to the downstream team or system.
+
+Manual-review destinations are driven by classification category so that
+the routing is not fragile string-matching against decision reason codes.
 """
 
 from app.models.returns import ReturnRecord
+from app.services.classification import ClassificationResult
 from app.services.decision import DecisionResult
 
+# Which queue receives each category when the decision is manual_review
+_CATEGORY_QUEUE: dict[str, str] = {
+    "damaged":          "damage_claims_team",
+    "wrong_item":       "warehouse_investigation",
+    "not_as_described": "customer_disputes_team",
+    "buyer_remorse":    "manual_review_queue",
+    "sizing":           "manual_review_queue",
+    "other":            "manual_review_queue",
+}
 
-def route(record: ReturnRecord, decision: DecisionResult) -> str:
+
+def route(
+    record: ReturnRecord,
+    classification: ClassificationResult,
+    decision: DecisionResult,
+) -> str:
+    """
+    Determine the routing destination for a processed return.
+
+    Args:
+        record: The return record (provides preference for approved routing).
+        classification: Used to select the right manual-review queue.
+        decision: The final decision outcome.
+
+    Returns:
+        A string identifier for the downstream system or team.
+    """
     if decision.decision == "rejected":
         return "notify_customer:rejected"
 
     if decision.decision == "manual_review":
-        reason = decision.reason
-        if "damage" in reason:
-            return "damage_claims_team"
-        if "wrong_item" in reason:
-            return "warehouse_investigation"
-        if "high_value" in reason:
+        # High-value orders bypass category routing → senior escalation
+        if "high_value" in decision.reason:
             return "senior_support_review"
-        return "manual_review_queue"
+        return _CATEGORY_QUEUE.get(classification.category, "manual_review_queue")
 
     # approved
     if record.preference == "exchange":
