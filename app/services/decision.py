@@ -1,12 +1,18 @@
 """
-Decision: produces approve / reject / manual_review given validation + classification.
-All thresholds are read from config.
+Decision: maps a validation result + composite score to a final decision.
+
+Two explicit hard rules override the score-based path:
+  1. Validation failure → always REJECT (score is irrelevant)
+  2. High-value order → always MANUAL_REVIEW (hard business rule from config)
+
+All other decisions are score-based using the auto_approve_score threshold.
 """
 
 from dataclasses import dataclass
 
 from app.config import settings
 from app.models.returns import ReturnRecord
+from app.services.scoring import ScoreResult
 from app.services.validation import ValidationResult
 
 
@@ -19,13 +25,27 @@ class DecisionResult:
 def decide(
     record: ReturnRecord,
     validation: ValidationResult,
-    classification: str,
+    score: ScoreResult,
 ) -> DecisionResult:
-    # Failed policy validation → reject immediately
-    if not validation.valid:
-        return DecisionResult("rejected", validation.reason)
+    """
+    Produce the final return decision.
 
-    # High-value orders need a human
+    Args:
+        record: The return record (provides order_amount for value check).
+        validation: Accumulated policy validation results.
+        score: Composite confidence score from the scoring step.
+
+    Returns:
+        DecisionResult with the decision and a machine-readable reason code.
+    """
+    # 1. Policy validation failure → reject, include all reasons
+    if not validation.valid:
+        return DecisionResult(
+            "rejected",
+            "validation_failed:" + ";".join(validation.reasons),
+        )
+
+    # 2. High-value orders → mandatory human review (explicit business rule)
     if (
         record.order_amount is not None
         and record.order_amount > settings.refund_threshold_amount
@@ -33,13 +53,8 @@ def decide(
     ):
         return DecisionResult("manual_review", "high_value_order")
 
-    # Physical damage requires inspection
-    if classification == "damaged":
-        return DecisionResult("manual_review", "damage_claim")
+    # 3. Score-based gate
+    if score.score >= settings.auto_approve_score:
+        return DecisionResult("approved", f"score:{score.score:.3f}")
 
-    # Wrong-item shipments require warehouse investigation
-    if classification == "wrong_item":
-        return DecisionResult("manual_review", "wrong_item_claim")
-
-    # Everything else within the window is auto-approved
-    return DecisionResult("approved", f"standard:{classification}")
+    return DecisionResult("manual_review", f"low_confidence_score:{score.score:.3f}")
