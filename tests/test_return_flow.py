@@ -1,18 +1,22 @@
 """
 Integration tests for the full return processing pipeline.
-Each test exercises the entire request → decision → DB path.
+
+Each test drives an HTTP request through the complete stack:
+  request → ingestion → validation → classification → scoring → decision → routing → DB
+
+The scoring model and thresholds are deterministic, so expected decisions
+are predictable from the input payload.
 """
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from app.core.metrics import metrics
 from app.main import app
 
 BASE = "/api/v1/returns"
 TRANSPORT = ASGITransport(app=app)
 
-# A base payload that is always within the return window
+# Base payload: buyer_remorse (high clarity + high confidence) → approved
 _BASE = {
     "order_id": "ORD-TEST-001",
     "reason": "Item arrived in perfect condition but changed my mind",
@@ -33,7 +37,7 @@ def _payload(**overrides) -> dict:
 
 
 @pytest.mark.asyncio
-async def test_standard_return_is_approved():
+async def test_standard_return_is_approved() -> None:
     async with AsyncClient(transport=TRANSPORT, base_url="http://test") as client:
         resp = await client.post(BASE, json=_payload())
     assert resp.status_code == 201
@@ -43,7 +47,7 @@ async def test_standard_return_is_approved():
 
 
 @pytest.mark.asyncio
-async def test_exchange_preference_routes_to_warehouse():
+async def test_exchange_preference_routes_to_warehouse() -> None:
     async with AsyncClient(transport=TRANSPORT, base_url="http://test") as client:
         resp = await client.post(BASE, json=_payload(preference="exchange"))
     assert resp.status_code == 201
@@ -52,13 +56,24 @@ async def test_exchange_preference_routes_to_warehouse():
     assert body["routing_outcome"] == "warehouse:exchange_processing"
 
 
+@pytest.mark.asyncio
+async def test_approved_response_includes_pipeline_metadata() -> None:
+    async with AsyncClient(transport=TRANSPORT, base_url="http://test") as client:
+        resp = await client.post(BASE, json=_payload())
+    body = resp.json()
+    assert body["classification_category"] == "buyer_remorse"
+    assert body["classification_confidence"] is not None
+    assert body["risk_score"] is not None
+    assert body["risk_score"] >= 0.70  # above auto_approve_score
+
+
 # ---------------------------------------------------------------------------
 # Decision: rejected
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_return_outside_window_is_rejected():
+async def test_return_outside_window_is_rejected() -> None:
     async with AsyncClient(transport=TRANSPORT, base_url="http://test") as client:
         resp = await client.post(BASE, json=_payload(purchase_date="2025-01-01"))
     assert resp.status_code == 201
@@ -69,11 +84,13 @@ async def test_return_outside_window_is_rejected():
 
 
 @pytest.mark.asyncio
-async def test_invalid_purchase_date_is_rejected():
+async def test_invalid_purchase_date_is_rejected() -> None:
     async with AsyncClient(transport=TRANSPORT, base_url="http://test") as client:
         resp = await client.post(BASE, json=_payload(purchase_date="not-a-date"))
     assert resp.status_code == 201
-    assert resp.json()["decision"] == "rejected"
+    body = resp.json()
+    assert body["decision"] == "rejected"
+    assert "invalid_purchase_date" in body["decision_reason"]
 
 
 # ---------------------------------------------------------------------------
@@ -82,17 +99,18 @@ async def test_invalid_purchase_date_is_rejected():
 
 
 @pytest.mark.asyncio
-async def test_damaged_item_goes_to_manual_review():
+async def test_damaged_item_goes_to_manual_review() -> None:
     async with AsyncClient(transport=TRANSPORT, base_url="http://test") as client:
         resp = await client.post(BASE, json=_payload(damaged=True, reason="Item is broken"))
     assert resp.status_code == 201
     body = resp.json()
     assert body["decision"] == "manual_review"
     assert body["routing_outcome"] == "damage_claims_team"
+    assert body["classification_category"] == "damaged"
 
 
 @pytest.mark.asyncio
-async def test_wrong_item_goes_to_warehouse_investigation():
+async def test_wrong_item_goes_to_warehouse_investigation() -> None:
     async with AsyncClient(transport=TRANSPORT, base_url="http://test") as client:
         resp = await client.post(
             BASE,
@@ -102,16 +120,42 @@ async def test_wrong_item_goes_to_warehouse_investigation():
     body = resp.json()
     assert body["decision"] == "manual_review"
     assert body["routing_outcome"] == "warehouse_investigation"
+    assert body["classification_category"] == "wrong_item"
 
 
 @pytest.mark.asyncio
-async def test_high_value_order_goes_to_manual_review():
+async def test_high_value_order_goes_to_manual_review() -> None:
     async with AsyncClient(transport=TRANSPORT, base_url="http://test") as client:
         resp = await client.post(BASE, json=_payload(order_amount=999.99))
     assert resp.status_code == 201
     body = resp.json()
     assert body["decision"] == "manual_review"
     assert body["decision_reason"] == "high_value_order"
+    assert body["routing_outcome"] == "senior_support_review"
+
+
+@pytest.mark.asyncio
+async def test_vague_reason_goes_to_manual_review() -> None:
+    """An unrecognised reason gets classified as 'other' (low clarity → low score → manual)."""
+    async with AsyncClient(transport=TRANSPORT, base_url="http://test") as client:
+        resp = await client.post(BASE, json=_payload(reason="I just want to return it"))
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["decision"] == "manual_review"
+    assert body["classification_category"] == "other"
+
+
+@pytest.mark.asyncio
+async def test_not_as_described_goes_to_disputes_team() -> None:
+    async with AsyncClient(transport=TRANSPORT, base_url="http://test") as client:
+        resp = await client.post(
+            BASE,
+            json=_payload(reason="Product is not as described on the website at all"),
+        )
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["decision"] == "manual_review"
+    assert body["routing_outcome"] == "customer_disputes_team"
 
 
 # ---------------------------------------------------------------------------
@@ -120,7 +164,7 @@ async def test_high_value_order_goes_to_manual_review():
 
 
 @pytest.mark.asyncio
-async def test_get_return_by_id():
+async def test_get_return_by_id() -> None:
     async with AsyncClient(transport=TRANSPORT, base_url="http://test") as client:
         create_resp = await client.post(BASE, json=_payload())
         return_id = create_resp.json()["id"]
@@ -129,10 +173,13 @@ async def test_get_return_by_id():
     body = get_resp.json()
     assert body["id"] == return_id
     assert body["order_id"] == "ORD-TEST-001"
+    # GET also exposes pipeline metadata
+    assert "classification_category" in body
+    assert "risk_score" in body
 
 
 @pytest.mark.asyncio
-async def test_get_nonexistent_return_returns_404():
+async def test_get_nonexistent_return_returns_404() -> None:
     async with AsyncClient(transport=TRANSPORT, base_url="http://test") as client:
         resp = await client.get(f"{BASE}/does-not-exist")
     assert resp.status_code == 404
@@ -144,11 +191,11 @@ async def test_get_nonexistent_return_returns_404():
 
 
 @pytest.mark.asyncio
-async def test_metrics_are_recorded():
+async def test_metrics_are_recorded() -> None:
     async with AsyncClient(transport=TRANSPORT, base_url="http://test") as client:
-        await client.post(BASE, json=_payload())                           # approved
+        await client.post(BASE, json=_payload())                            # approved
         await client.post(BASE, json=_payload(purchase_date="2025-01-01"))  # rejected
-        await client.post(BASE, json=_payload(damaged=True))               # manual_review
+        await client.post(BASE, json=_payload(damaged=True))                # manual_review
         resp = await client.get("/metrics")
 
     body = resp.json()
