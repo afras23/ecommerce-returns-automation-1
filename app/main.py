@@ -1,11 +1,21 @@
+"""
+FastAPI application entry: middleware, routes, and lifespan hooks.
+"""
+
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from fastapi import FastAPI
 
-from app.core.metrics import metrics
+from app.api.middleware import (
+    CorrelationIdMiddleware,
+    RateLimitMiddleware,
+    RequestLoggingMiddleware,
+    register_exception_handlers,
+)
+from app.api.routes import health, metrics, returns
+from app.core.logging import setup_logging
 from app.database import init_db
-from app.routes import health, returns
 
 
 @asynccontextmanager
@@ -14,17 +24,24 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     yield
 
 
-app = FastAPI(
-    title="Returns Automation API",
-    description="Internal ecommerce returns processing system.",
-    version="1.0.0",
-    lifespan=lifespan,
-)
+def create_app() -> FastAPI:
+    setup_logging()
+    application = FastAPI(
+        title="Returns Automation API",
+        description="Internal ecommerce returns processing system.",
+        version="1.0.0",
+        lifespan=lifespan,
+    )
+    register_exception_handlers(application)
+    # Order: last registered runs first on incoming requests
+    application.add_middleware(RequestLoggingMiddleware)
+    application.add_middleware(RateLimitMiddleware)
+    application.add_middleware(CorrelationIdMiddleware)
 
-app.include_router(health.router)
-app.include_router(returns.router)
+    application.include_router(health.router)
+    application.include_router(metrics.router)
+    application.include_router(returns.router)
+    return application
 
 
-@app.get("/metrics", tags=["observability"])
-async def get_metrics() -> dict:
-    return metrics.snapshot()
+app = create_app()

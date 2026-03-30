@@ -1,3 +1,7 @@
+"""
+In-process counters for return decision outcomes (approval / rejection / manual review).
+"""
+
 from threading import Lock
 
 

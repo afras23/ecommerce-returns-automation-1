@@ -1,13 +1,14 @@
 """
 Ingestion: converts a validated API request into a ReturnRecord ready for the pipeline.
+
 No business logic here — just mapping.
 """
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
+from app.api.schemas.returns import ReturnRequest
 from app.models.returns import ReturnRecord
-from app.schemas.returns import ReturnRequest
 
 
 def ingest(data: ReturnRequest) -> ReturnRecord:
@@ -21,6 +22,6 @@ def ingest(data: ReturnRequest) -> ReturnRecord:
         order_amount=data.order_amount,
         damaged=data.damaged,
         product_type=data.product_type,
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
     )

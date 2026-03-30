@@ -1,10 +1,9 @@
+import app.database as db_module
 import pytest
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-
-import app.database as db_module
 from app.core.metrics import metrics
 from app.models.returns import Base
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 
 @pytest_asyncio.fixture(autouse=True)

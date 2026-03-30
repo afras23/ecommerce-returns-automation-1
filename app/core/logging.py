@@ -1,10 +1,16 @@
+"""
+Structured JSON logging setup and helpers.
+
+Configures the root logger with a JSON formatter for production-style logs.
+"""
+
 import logging
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 class StructuredFormatter(logging.Formatter):
-    """Emit each log record as a flat JSON-compatible dict string."""
+    """Emit each log record as a single JSON object per line."""
 
     _SKIP = frozenset(
         {
@@ -37,7 +43,7 @@ class StructuredFormatter(logging.Formatter):
         import json
 
         payload: dict = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
@@ -53,12 +59,25 @@ class StructuredFormatter(logging.Formatter):
         return json.dumps(payload)
 
 
+def setup_logging() -> None:
+    """Configure root logging with structured JSON output."""
+    from app.config import settings
+
+    level = getattr(logging, settings.log_level.upper(), logging.INFO)
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(StructuredFormatter())
+
+    root = logging.getLogger()
+    root.handlers.clear()
+    root.addHandler(handler)
+    root.setLevel(level)
+
+    # Ensure uvicorn loggers propagate to root
+    for name in ("uvicorn", "uvicorn.access", "uvicorn.error"):
+        logging.getLogger(name).handlers.clear()
+        logging.getLogger(name).propagate = True
+
+
 def get_logger(name: str) -> logging.Logger:
-    logger = logging.getLogger(name)
-    if not logger.handlers:
-        handler = logging.StreamHandler(sys.stdout)
-        handler.setFormatter(StructuredFormatter())
-        logger.addHandler(handler)
-        logger.setLevel(logging.INFO)
-        logger.propagate = False
-    return logger
+    """Return a module logger (uses root configuration after setup_logging)."""
+    return logging.getLogger(name)
