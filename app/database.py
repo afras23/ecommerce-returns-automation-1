@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+import app.models.pipeline  # noqa: F401 — register ORM tables on shared metadata
 from app.config import settings
 from app.models.returns import Base
 

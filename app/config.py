@@ -68,5 +68,20 @@ class Settings(BaseSettings):
     # Metrics (optional)
     metrics_enabled: bool = True
 
+    # Fraud scoring (deterministic, non-AI)
+    fraud_window_days: int = 30
+    fraud_frequency_high_count: int = 5
+    fraud_total_value_high_usd: float = 1500.0
+    fraud_avg_order_value_high_usd: float = 300.0
+    fraud_recency_hot_days: int = 3
+    fraud_weight_frequency: float = 0.45
+    fraud_weight_value: float = 0.35
+    fraud_weight_recency: float = 0.20
+    fraud_risk_medium_min: float = 0.35
+    fraud_risk_high_min: float = 0.65
+
+    # Refund engine (rule-based)
+    restocking_fee_percent: float = 0.0
+
 
 settings = Settings()

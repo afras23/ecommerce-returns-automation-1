@@ -1,4 +1,5 @@
 import app.database as db_module
+import app.models.pipeline  # noqa: F401 — ensure pipeline tables exist in metadata
 import pytest
 import pytest_asyncio
 from app.core.metrics import metrics
