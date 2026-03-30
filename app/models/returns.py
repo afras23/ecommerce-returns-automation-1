@@ -5,7 +5,7 @@ SQLAlchemy models for return records.
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, DateTime, Float, String
+from sqlalchemy import Boolean, DateTime, Float, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -30,6 +30,8 @@ class ReturnRecord(Base):
     order_amount: Mapped[float | None] = mapped_column(Float, nullable=True)
     damaged: Mapped[bool] = mapped_column(Boolean, default=False)
     product_type: Mapped[str | None] = mapped_column(String, nullable=True)
+    product_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    customer_segment: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
 
     classification_category: Mapped[str | None] = mapped_column(String, nullable=True)
     classification_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -37,6 +39,9 @@ class ReturnRecord(Base):
     decision: Mapped[str | None] = mapped_column(String, nullable=True)
     decision_reason: Mapped[str | None] = mapped_column(String, nullable=True)
     routing_outcome: Mapped[str | None] = mapped_column(String, nullable=True)
+    fraud_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    processing_time_ms: Mapped[float | None] = mapped_column(Float, nullable=True)
+    shipping_label_json: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
     updated_at: Mapped[datetime] = mapped_column(

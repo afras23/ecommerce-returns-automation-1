@@ -5,7 +5,6 @@ Tests verify all three decision paths (approved/rejected/manual_review)
 and the boundary conditions between them.
 """
 
-
 from app.config import settings
 from app.models.returns import ReturnRecord
 from app.services.decision import DecisionResult, decide

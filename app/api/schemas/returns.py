@@ -16,6 +16,8 @@ class ReturnRequest(BaseModel):
     order_amount: float | None = None
     damaged: bool = False
     product_type: str | None = None
+    product_id: str | None = None
+    customer_segment: str | None = None
 
 
 class ReturnResponse(BaseModel):
@@ -40,4 +42,26 @@ class ReturnDetail(ReturnResponse):
     order_amount: float | None
     damaged: bool
     product_type: str | None
+    product_id: str | None = None
+    customer_segment: str | None = None
+    fraud_score: float | None = None
+    processing_time_ms: float | None = None
+    shipping_label_json: str | None = None
     updated_at: datetime
+
+
+class ProcessReturnResponse(ReturnDetail):
+    """Extended response for process endpoints with request tracing."""
+
+    correlation_id: str | None = None
+
+
+class BatchReturnRequest(BaseModel):
+    """Batch of return requests processed in order."""
+
+    items: list[ReturnRequest] = Field(min_length=1, max_length=50)
+
+
+class BatchReturnResponse(BaseModel):
+    results: list[ProcessReturnResponse]
+    correlation_id: str | None = None

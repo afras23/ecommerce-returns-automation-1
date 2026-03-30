@@ -11,12 +11,12 @@ from app.services.decision import DecisionResult
 
 # Which queue receives each category when the decision is manual_review
 _CATEGORY_QUEUE: dict[str, str] = {
-    "damaged":          "damage_claims_team",
-    "wrong_item":       "warehouse_investigation",
+    "damaged": "damage_claims_team",
+    "wrong_item": "warehouse_investigation",
     "not_as_described": "customer_disputes_team",
-    "buyer_remorse":    "manual_review_queue",
-    "sizing":           "manual_review_queue",
-    "other":            "manual_review_queue",
+    "buyer_remorse": "manual_review_queue",
+    "sizing": "manual_review_queue",
+    "other": "manual_review_queue",
 }
 
 

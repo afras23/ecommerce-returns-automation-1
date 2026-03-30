@@ -192,9 +192,9 @@ async def test_get_nonexistent_return_returns_404() -> None:
 @pytest.mark.asyncio
 async def test_metrics_are_recorded() -> None:
     async with AsyncClient(transport=TRANSPORT, base_url="http://test") as client:
-        await client.post(BASE, json=_payload())                            # approved
+        await client.post(BASE, json=_payload())  # approved
         await client.post(BASE, json=_payload(purchase_date="2025-01-01"))  # rejected
-        await client.post(BASE, json=_payload(damaged=True))                # manual_review
+        await client.post(BASE, json=_payload(damaged=True))  # manual_review
         resp = await client.get("/metrics")
 
     body = resp.json()
@@ -203,3 +203,6 @@ async def test_metrics_are_recorded() -> None:
     assert body["rejected"] == 1
     assert body["manual_review"] == 1
     assert body["approval_rate"] == pytest.approx(1 / 3, abs=1e-4)
+    assert body["returns_processed_total"] == 3
+    assert "fraud_flagged_pct" in body
+    assert "avg_processing_time_ms" in body

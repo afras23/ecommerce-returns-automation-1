@@ -22,6 +22,8 @@ def ingest(data: ReturnRequest) -> ReturnRecord:
         order_amount=data.order_amount,
         damaged=data.damaged,
         product_type=data.product_type,
+        product_id=data.product_id,
+        customer_segment=data.customer_segment,
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC),
     )

@@ -30,7 +30,9 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
         request.state.request_id = request_id
         token = correlation_id_ctx.set(request_id)
         try:
-            return cast(Response, await call_next(request))
+            response = cast(Response, await call_next(request))
+            response.headers["X-Correlation-ID"] = request_id
+            return response
         finally:
             correlation_id_ctx.reset(token)
 

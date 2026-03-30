@@ -205,11 +205,7 @@ class AIClient:
             data = response.json()
 
         latency_ms = (time.perf_counter() - start) * 1000
-        content = (
-            data.get("choices", [{}])[0]
-            .get("message", {})
-            .get("content", "")
-        )
+        content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
         usage = data.get("usage") or {}
         prompt_tokens = int(usage.get("prompt_tokens", 0))
         completion_tokens = int(usage.get("completion_tokens", 0))

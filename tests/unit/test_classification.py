@@ -33,7 +33,7 @@ def _record(reason: str = "", damaged: bool = False) -> ReturnRecord:
         # damaged
         ("Item arrived completely shattered", False, "damaged", 0.90),
         ("The product is defective and broken", False, "damaged", 0.80),
-        ("", True, "damaged", 0.90),        # structural flag — no reason needed
+        ("", True, "damaged", 0.90),  # structural flag — no reason needed
         ("Changed my mind", True, "damaged", 0.90),  # flag overrides text
         # wrong_item
         ("This is the wrong item, I ordered a blue one", False, "wrong_item", 0.90),

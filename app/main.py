@@ -13,7 +13,7 @@ from app.api.middleware import (
     RequestLoggingMiddleware,
     register_exception_handlers,
 )
-from app.api.routes import health, metrics, returns
+from app.api.routes import analytics, health, metrics, returns
 from app.core.logging import setup_logging
 from app.database import init_db
 
@@ -41,6 +41,7 @@ def create_app() -> FastAPI:
     application.include_router(health.router)
     application.include_router(metrics.router)
     application.include_router(returns.router)
+    application.include_router(analytics.router)
     return application
 
 

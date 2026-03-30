@@ -64,9 +64,7 @@ def compute_refund(
     refund_amount = round(max(0.0, gross - fees), 2)
 
     reason = (
-        f"condition={data.condition.value}; "
-        f"base_pct={pct:.2f}; "
-        f"restocking_fee_pct={fee_rate:.4f}"
+        f"condition={data.condition.value}; base_pct={pct:.2f}; restocking_fee_pct={fee_rate:.4f}"
     )
 
     return RefundComputationOutput(

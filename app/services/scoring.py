@@ -31,25 +31,25 @@ from app.services.validation import ValidationResult
 # Weights must sum to 1.0
 _WEIGHTS: dict[str, float] = {
     "classification": 0.35,
-    "value":          0.15,
-    "clarity":        0.40,
-    "history":        0.10,
+    "value": 0.15,
+    "clarity": 0.40,
+    "history": 0.10,
 }
 
 # How objectively auto-processable each category is (0 = always needs human)
 _CLARITY_FACTOR: dict[str, float] = {
-    "damaged":          0.10,  # physical inspection required
-    "wrong_item":       0.25,  # warehouse verification required
+    "damaged": 0.10,  # physical inspection required
+    "wrong_item": 0.25,  # warehouse verification required
     "not_as_described": 0.25,  # subjective dispute — always warrants human judgment
-    "buyer_remorse":    0.85,  # clear, policy-standard
-    "sizing":           0.90,  # objective, common case
-    "other":            0.20,  # unknown reason — treat cautiously
+    "buyer_remorse": 0.85,  # clear, policy-standard
+    "sizing": 0.90,  # objective, common case
+    "other": 0.20,  # unknown reason — treat cautiously
 }
 
 
 @dataclass
 class ScoreResult:
-    score: float               # composite 0.0 – 1.0
+    score: float  # composite 0.0 – 1.0
     classification_factor: float
     value_factor: float
     clarity_factor: float
@@ -89,6 +89,7 @@ def score(
     # Value factor: higher order amounts introduce more financial exposure
     amount = record.order_amount or 0.0
     from app.config import settings  # local import avoids circular at module level
+
     if amount > settings.refund_threshold_amount:
         value_factor = 0.50
     elif amount > settings.refund_threshold_amount * 0.5:
@@ -104,9 +105,9 @@ def score(
 
     composite = (
         _WEIGHTS["classification"] * classification_factor
-        + _WEIGHTS["value"]          * value_factor
-        + _WEIGHTS["clarity"]        * clarity_factor
-        + _WEIGHTS["history"]        * history_factor
+        + _WEIGHTS["value"] * value_factor
+        + _WEIGHTS["clarity"] * clarity_factor
+        + _WEIGHTS["history"] * history_factor
     )
 
     return ScoreResult(

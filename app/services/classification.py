@@ -66,7 +66,7 @@ _OTHER_CONFIDENCE = 0.30
 
 @dataclass
 class ClassificationResult:
-    category: str   # damaged | wrong_item | not_as_described | sizing | buyer_remorse | other
+    category: str  # damaged | wrong_item | not_as_described | sizing | buyer_remorse | other
     confidence: float  # 0.0 – 1.0
 
 

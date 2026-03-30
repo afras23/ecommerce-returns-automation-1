@@ -66,9 +66,7 @@ def assess_fraud(
     clock = _ensure_utc(now or datetime.now(UTC))
     window_start = clock - timedelta(days=settings.fraud_window_days)
 
-    windowed = [
-        h for h in data.return_history if _ensure_utc(h.created_at) >= window_start
-    ]
+    windowed = [h for h in data.return_history if _ensure_utc(h.created_at) >= window_start]
     frequency = len(windowed)
     total_value = sum(h.order_amount for h in windowed)
     avg_value = (total_value / frequency) if frequency else 0.0

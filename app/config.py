@@ -79,6 +79,7 @@ class Settings(BaseSettings):
     fraud_weight_recency: float = 0.20
     fraud_risk_medium_min: float = 0.35
     fraud_risk_high_min: float = 0.65
+    fraud_flagged_processing_threshold: float = 0.65
 
     # Refund engine (rule-based)
     restocking_fee_percent: float = 0.0

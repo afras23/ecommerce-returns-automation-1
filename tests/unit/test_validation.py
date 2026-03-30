@@ -52,8 +52,8 @@ def _record(**kwargs) -> ReturnRecord:
 @pytest.mark.parametrize(
     "purchase_date,expected_valid",
     [
-        ("2026-03-01", True),   # exactly 30 days — inclusive (not over window)
-        ("2026-03-20", True),   # 11 days ago — within window
+        ("2026-03-01", True),  # exactly 30 days — inclusive (not over window)
+        ("2026-03-20", True),  # 11 days ago — within window
         ("2025-12-22", False),  # outside the 30-day window
         ("2025-01-01", False),  # far outside
         ("2026-02-28", False),  # 31 days before fixed today — outside window

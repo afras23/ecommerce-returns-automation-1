@@ -10,8 +10,8 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import database
 from app.config import settings
-from app.database import async_session
 from app.services.ai.client import AIClient
 
 
@@ -20,8 +20,10 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
     Yield an async SQLAlchemy session per request.
 
     The session is closed after the request completes.
+    Use ``database.async_session`` (not a captured import) so tests can swap
+    the engine/session factory on ``app.database``.
     """
-    async with async_session() as session:
+    async with database.async_session() as session:
         yield session
 
 

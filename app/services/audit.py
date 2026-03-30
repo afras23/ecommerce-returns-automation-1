@@ -46,9 +46,9 @@ def log_pipeline(record: ReturnRecord, pipeline: PipelineResult) -> None:
             "risk_score": pipeline.score.score,
             "score_factors": {
                 "classification": pipeline.score.classification_factor,
-                "value":          pipeline.score.value_factor,
-                "clarity":        pipeline.score.clarity_factor,
-                "history":        pipeline.score.history_factor,
+                "value": pipeline.score.value_factor,
+                "clarity": pipeline.score.clarity_factor,
+                "history": pipeline.score.history_factor,
             },
             # Request context
             "purchase_date": record.purchase_date,

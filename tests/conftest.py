@@ -2,15 +2,20 @@ import app.database as db_module
 import app.models.pipeline  # noqa: F401 — ensure pipeline tables exist in metadata
 import pytest
 import pytest_asyncio
-from app.core.metrics import metrics
+from app.core.metrics import metrics, observability_metrics
 from app.models.returns import Base
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import StaticPool
 
 
 @pytest_asyncio.fixture(autouse=True)
 async def isolated_db():
     """Spin up a fresh in-memory SQLite DB for every test."""
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    engine = create_async_engine(
+        "sqlite+aiosqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
@@ -34,5 +39,7 @@ async def isolated_db():
 def reset_metrics():
     """Ensure metrics counters don't bleed between tests."""
     metrics.reset()
+    observability_metrics.reset()
     yield
     metrics.reset()
+    observability_metrics.reset()
