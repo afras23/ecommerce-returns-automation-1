@@ -2,3 +2,6 @@
 __pycache__/
 .venv/
 venv/
+
+# Generated evaluation report (re-run: make evaluate)
+eval/report.json

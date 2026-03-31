@@ -1,4 +1,4 @@
-.PHONY: lint typecheck test run migrate
+.PHONY: lint typecheck test run migrate evaluate
 
 lint:
 	ruff check app tests
@@ -14,3 +14,6 @@ migrate:
 
 run:
 	uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+evaluate:
+	PYTHONPATH=. python scripts/evaluate.py --jsonl eval/test_set.jsonl --report eval/report.json
