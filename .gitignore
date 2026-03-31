@@ -2,6 +2,8 @@
 __pycache__/
 .venv/
 venv/
+*.db
+.env
 
 # Generated evaluation report (re-run: make evaluate)
 eval/report.json

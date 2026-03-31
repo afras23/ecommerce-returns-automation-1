@@ -31,3 +31,6 @@ jobs:
 
       - name: Test
         run: make test
+
+      - name: Golden evaluation set
+        run: make evaluate

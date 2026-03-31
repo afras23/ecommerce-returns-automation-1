@@ -1,7 +1,7 @@
-.PHONY: lint typecheck test run migrate evaluate
+.PHONY: lint typecheck test run migrate evaluate ci
 
 lint:
-	ruff check app tests
+	ruff check app tests scripts
 
 typecheck:
 	mypy app
@@ -17,3 +17,6 @@ run:
 
 evaluate:
 	PYTHONPATH=. python scripts/evaluate.py --jsonl eval/test_set.jsonl --report eval/report.json
+
+# Local parity with CI (lint + types + tests + golden eval)
+ci: lint typecheck test evaluate
